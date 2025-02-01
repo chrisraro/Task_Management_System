@@ -97,6 +97,9 @@ th, td {
 }
 
 /* Modal styles */
+.modal-dialog {
+    max-width: 500px;
+  }
 .modal {
     display: none;
     position: fixed;

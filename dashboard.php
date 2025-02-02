@@ -1,4 +1,5 @@
 <?php
+// dashboard.php
 session_start();
 if (!isset($_SESSION['user'])) {
   header('Location: index.php');
@@ -15,7 +16,7 @@ $user = $_SESSION['user'];
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Optional custom CSS -->
   <link rel="stylesheet" href="css/style.css">
-  <!-- jQuery (needed for our custom JS) -->
+  <!-- jQuery -->
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
@@ -35,43 +36,60 @@ $user = $_SESSION['user'];
 
   <div class="container my-4">
     <?php if ($user['role'] == 'admin'): ?>
-    <!-- Admin: Add Task Form -->
-    <div class="card mb-4">
-      <div class="card-header">
-        Add New Task
+      <!-- Two-Column Layout: Row with 4:8 ratio -->
+      <div class="row">
+        <!-- Left Column: Add Task Form -->
+        <div class="col-md-4">
+          <div class="card mb-4">
+            <div class="card-header">Add New Task</div>
+            <div class="card-body">
+              <form id="addTaskForm">
+                <div class="mb-3">
+                  <label for="taskTitle" class="form-label">Title:</label>
+                  <input type="text" name="title" id="taskTitle" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                  <label for="taskDescription" class="form-label">Description:</label>
+                  <textarea name="description" id="taskDescription" class="form-control" rows="3"></textarea>
+                </div>
+                <div class="mb-3">
+                  <label for="assignedTo" class="form-label">Assign To (Employee ID):</label>
+                  <input type="number" name="assigned_to" id="assignedTo" class="form-control" required>
+                </div>
+                <input type="hidden" name="action" value="add_task">
+                <div class="d-grid">
+                  <button type="submit" class="btn btn-primary">Add Task</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+        <!-- Right Column: Task List -->
+        <div class="col-md-8">
+          <div class="card mb-4">
+            <div class="card-header">Tasks List</div>
+            <div class="card-body" id="tasksContainer">
+              <!-- Tasks will be loaded via AJAX -->
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="card-body">
-        <form id="addTaskForm">
-          <div class="mb-3">
-            <label for="taskTitle" class="form-label">Title:</label>
-            <input type="text" name="title" id="taskTitle" class="form-control" required>
-          </div>
-          <div class="mb-3">
-            <label for="taskDescription" class="form-label">Description:</label>
-            <textarea name="description" id="taskDescription" class="form-control" rows="3"></textarea>
-          </div>
-          <div class="mb-3">
-            <label for="assignedTo" class="form-label">Assign To (Employee ID):</label>
-            <input type="number" name="assigned_to" id="assignedTo" class="form-control" required>
-          </div>
-          <input type="hidden" name="action" value="add_task">
-          <div class="d-grid">
-            <button type="submit" class="btn btn-primary">Add Task</button>
-          </div>
-        </form>
+      <!-- Employee Pool Section -->
+      <div class="card">
+        <div class="card-header">Employee Pool</div>
+        <div class="card-body" id="employeePoolContainer">
+          <!-- Employee pool data will be loaded via AJAX -->
+        </div>
       </div>
-    </div>
+    <?php else: ?>
+      <!-- For employees, you might show only their tasks -->
+      <div class="card">
+        <div class="card-header">My Tasks</div>
+        <div class="card-body" id="tasksContainer">
+          <!-- Tasks loaded via AJAX for the employee -->
+        </div>
+      </div>
     <?php endif; ?>
-
-    <!-- Tasks List -->
-    <div class="card">
-      <div class="card-header">
-        Tasks List
-      </div>
-      <div class="card-body" id="tasksContainer">
-        <!-- Tasks will be loaded via AJAX -->
-      </div>
-    </div>
   </div>
 
   <!-- Edit Task Modal (Bootstrap Modal) -->

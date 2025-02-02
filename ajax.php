@@ -127,7 +127,34 @@ if ($action == 'load_tasks') {
     } else {
         echo "Error updating task.";
     }
-    
+} elseif ($action == 'load_employee_pool' && $user['role'] == 'admin') {
+    // Query to group tasks by employee
+    $stmt = $pdo->query("SELECT u.username, 
+                             GROUP_CONCAT(t.title SEPARATOR ', ') AS tasks, 
+                             GROUP_CONCAT(t.status SEPARATOR ', ') AS statuses 
+                          FROM tasks t 
+                          JOIN users u ON t.assigned_to = u.id 
+                          WHERE u.role = 'employee'
+                          GROUP BY u.username");
+    $employees = $stmt->fetchAll();
+    if ($employees) {
+      echo '<div class="table-responsive"><table class="table table-bordered table-hover">';
+      echo '<thead class="table-light"><tr>
+              <th>Employee Name</th>
+              <th>Task Titles</th>
+              <th>Task Statuses</th>
+            </tr></thead><tbody>';
+      foreach ($employees as $emp) {
+        echo '<tr>';
+        echo '<td>' . htmlspecialchars($emp['username']) . '</td>';
+        echo '<td>' . htmlspecialchars($emp['tasks']) . '</td>';
+        echo '<td>' . htmlspecialchars($emp['statuses']) . '</td>';
+        echo '</tr>';
+      }
+      echo '</tbody></table></div>';
+    } else {
+      echo '<p>No employee data found.</p>';
+    }
 } else {
     echo "Invalid action or insufficient permissions.";
 }

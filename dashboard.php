@@ -42,7 +42,7 @@ $user = $_SESSION['user'];
       <!-- Admin Dashboard: Two-Column Layout (4:8) -->
       <div class="row">
         <!-- Left Column: Add Task Form -->
-        <div class="col-md-4">
+        <div class="col-md-3">
           <div class="card mb-4">
             <div class="card-header">Add New Task</div>
             <div class="card-body">
@@ -68,7 +68,7 @@ $user = $_SESSION['user'];
           </div>
         </div>
         <!-- Right Column: Task List -->
-        <div class="col-md-8">
+        <div class="col-md-9">
           <div class="card mb-4">
             <div class="card-header">Tasks List</div>
             <div class="card-body" id="tasksContainer">

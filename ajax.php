@@ -24,6 +24,8 @@ if ($action == 'load_tasks') {
     
     $tasks = $stmt->fetchAll();
     if ($tasks) {
+        // Wrap the table in a responsive container.
+        echo '<div class="table-responsive">';
         echo '<table class="table table-bordered table-hover">';
         echo '<thead class="table-light"><tr>
                 <th>ID</th>
@@ -45,14 +47,25 @@ if ($action == 'load_tasks') {
             if ($user['role'] == 'admin') {
                 echo '<td>' . htmlspecialchars($task['username']) . '</td>';
             }
-            echo '<td>' . htmlspecialchars($task['status']) . '</td>';
+            // Set colored text for the status.
+            $status = htmlspecialchars($task['status']);
+            if ($status === 'pending') {
+                $statusText = '<span class="text-danger">' . $status . '</span>';
+            } elseif ($status === 'to be approve') {
+                $statusText = '<span class="text-warning">' . $status . '</span>';
+            } elseif ($status === 'completed') {
+                $statusText = '<span class="text-success">' . $status . '</span>';
+            } else {
+                $statusText = $status;
+            }
+            echo '<td>' . $statusText . '</td>';
             echo '<td>' . htmlspecialchars($task['created_at']) . '</td>';
             
             echo '<td>';
             if ($user['role'] == 'admin') {
-                // Replace text buttons with icons displayed in a vertical column.
-                echo '<div class="d-flex flex-column align-items-center">';
-                echo '<button class="edit-task btn btn-sm btn-info mb-1" data-id="' . $task['id'] . '" title="Edit">
+                // Display action icons horizontally.
+                echo '<div class="d-flex flex-row align-items-center">';
+                echo '<button class="edit-task btn btn-sm btn-info me-1" data-id="' . $task['id'] . '" title="Edit">
                         <i class="bi bi-pencil"></i>
                       </button>';
                 echo '<button class="delete-task btn btn-sm btn-danger" data-id="' . $task['id'] . '" title="Delete">
@@ -60,6 +73,7 @@ if ($action == 'load_tasks') {
                       </button>';
                 echo '</div>';
             } else {
+                // For employees.
                 if ($task['status'] == 'pending' && empty($task['accomplishment_report'])) {
                     echo '<button class="report-task btn btn-sm btn-warning" 
                                 data-id="' . $task['id'] . '" 
@@ -78,6 +92,7 @@ if ($action == 'load_tasks') {
             echo '</tr>';
         }
         echo '</tbody></table>';
+        echo '</div>'; // End responsive container.
     } else {
         echo 'No tasks found.';
     }
@@ -100,6 +115,7 @@ if ($action == 'load_tasks') {
         echo "Error adding task.";
     }
     
+// Employee submits an accomplishment report.
 } elseif ($action == 'submit_report' && $user['role'] == 'employee') {
     $task_id = intval($_POST['task_id']);
     $report = trim($_POST['report']);
@@ -158,13 +174,16 @@ if ($action == 'load_tasks') {
     }
     
 } elseif ($action == 'load_employee_pool' && $user['role'] == 'admin') {
-    $stmt = $pdo->query("SELECT u.username, 
-                             GROUP_CONCAT(t.title SEPARATOR ', ') AS tasks, 
-                             GROUP_CONCAT(t.status SEPARATOR ', ') AS statuses 
-                          FROM tasks t 
-                          JOIN users u ON t.assigned_to = u.id 
-                          WHERE u.role = 'employee'
-                          GROUP BY u.username");
+    // New "Employee List" shows all registered employees.
+    $stmt = $pdo->prepare("SELECT u.id, u.username, 
+                            GROUP_CONCAT(t.title SEPARATOR ', ') AS tasks, 
+                            GROUP_CONCAT(t.status SEPARATOR ', ') AS statuses,
+                            COUNT(t.id) AS task_count
+                           FROM users u 
+                           LEFT JOIN tasks t ON u.id = t.assigned_to 
+                           WHERE u.role = 'employee'
+                           GROUP BY u.id");
+    $stmt->execute();
     $employees = $stmt->fetchAll();
     if ($employees) {
       echo '<div class="table-responsive"><table class="table table-bordered table-hover">';
@@ -174,10 +193,12 @@ if ($action == 'load_tasks') {
               <th>Task Statuses</th>
             </tr></thead><tbody>';
       foreach ($employees as $emp) {
+        $tasks = !empty($emp['tasks']) ? htmlspecialchars($emp['tasks']) : 'No assigned tasks';
+        $statuses = $emp['task_count'] > 0 ? htmlspecialchars($emp['statuses']) : 'Vacant';
         echo '<tr>';
         echo '<td>' . htmlspecialchars($emp['username']) . '</td>';
-        echo '<td>' . htmlspecialchars($emp['tasks']) . '</td>';
-        echo '<td>' . htmlspecialchars($emp['statuses']) . '</td>';
+        echo '<td>' . $tasks . '</td>';
+        echo '<td>' . $statuses . '</td>';
         echo '</tr>';
       }
       echo '</tbody></table></div>';

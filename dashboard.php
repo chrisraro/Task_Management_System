@@ -1,9 +1,8 @@
 <?php
-// dashboard.php
 session_start();
 if (!isset($_SESSION['user'])) {
-  header('Location: index.php');
-  exit;
+    header('Location: index.php');
+    exit;
 }
 $user = $_SESSION['user'];
 ?>
@@ -14,17 +13,20 @@ $user = $_SESSION['user'];
   <title>Dashboard - Task Management System</title>
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Optional custom CSS -->
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <!-- Custom CSS -->
   <link rel="stylesheet" href="css/style.css">
   <!-- jQuery -->
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
-  <!-- Navbar -->
+  <!-- Navbar with Digital Clock -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid">
       <a class="navbar-brand" href="dashboard.php">Task Manager</a>
       <div class="collapse navbar-collapse justify-content-center">
+        <!-- Digital Clock Element: It will display the current date and time -->
         <span id="digitalClock" class="text-white"></span>
       </div>
       <div class="d-flex">
@@ -34,9 +36,10 @@ $user = $_SESSION['user'];
     </div>
   </nav>
 
+  <!-- Main Container -->
   <div class="container my-4">
     <?php if ($user['role'] == 'admin'): ?>
-      <!-- Two-Column Layout: Row with 4:8 ratio -->
+      <!-- Admin Dashboard: Two-Column Layout (4:8) -->
       <div class="row">
         <!-- Left Column: Add Task Form -->
         <div class="col-md-4">
@@ -78,21 +81,69 @@ $user = $_SESSION['user'];
       <div class="card">
         <div class="card-header">Employee Pool</div>
         <div class="card-body" id="employeePoolContainer">
-          <!-- Employee pool data will be loaded via AJAX -->
+          <!-- Employee pool data loaded via AJAX -->
         </div>
       </div>
+      <!-- Link to view accomplishment reports -->
+      <div class="mt-3">
+        <a href="reports.php" class="btn btn-info">View Accomplishment Reports</a>
+      </div>
     <?php else: ?>
-      <!-- For employees, you might show only their tasks -->
+      <!-- Employee Dashboard: Show My Tasks -->
       <div class="card">
         <div class="card-header">My Tasks</div>
         <div class="card-body" id="tasksContainer">
           <!-- Tasks loaded via AJAX for the employee -->
         </div>
       </div>
+      <!-- Employee Report Modal -->
+      <div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+          <div class="modal-content">
+            <form id="reportForm" enctype="multipart/form-data">
+              <div class="modal-header">
+                <h5 class="modal-title" id="reportModalLabel">Report Accomplishment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <!-- Task Information -->
+                <div class="mb-3">
+                  <label class="form-label">Task Title:</label>
+                  <p id="reportTaskTitle" class="fw-bold"></p>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Task Status:</label>
+                  <p id="reportTaskStatus" class="mb-0"></p>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Task Description:</label>
+                  <p id="reportTaskDescription"></p>
+                </div>
+                <!-- Report Input -->
+                <div class="mb-3">
+                  <label for="accomplishmentReport" class="form-label">Accomplishment Report:</label>
+                  <textarea name="report" id="accomplishmentReport" class="form-control" rows="4" required></textarea>
+                </div>
+                <!-- File Upload -->
+                <div class="mb-3">
+                  <label for="documentation" class="form-label">Upload Documentation (images/videos):</label>
+                  <input type="file" name="documentation" id="documentation" class="form-control" accept="image/*,video/*">
+                </div>
+                <input type="hidden" name="task_id" id="reportTaskId">
+                <input type="hidden" name="action" value="submit_report">
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary">Submit Report</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
     <?php endif; ?>
   </div>
 
-  <!-- Edit Task Modal (Bootstrap Modal) -->
+  <!-- Edit Task Modal (Admin Only) -->
   <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">

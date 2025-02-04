@@ -9,52 +9,75 @@ $user = $_SESSION['user'];
 $action = isset($_POST['action']) ? $_POST['action'] : '';
 
 if ($action == 'load_tasks') {
-    // Load tasks based on user role
+    // Load tasks based on user role.
     if ($user['role'] == 'admin') {
-        $stmt = $pdo->query("SELECT tasks.*, users.username FROM tasks LEFT JOIN users ON tasks.assigned_to = users.id ORDER BY tasks.created_at DESC");
+        $stmt = $pdo->query("SELECT tasks.*, users.username FROM tasks 
+                             LEFT JOIN users ON tasks.assigned_to = users.id 
+                             ORDER BY tasks.created_at DESC");
     } else {
-        $stmt = $pdo->prepare("SELECT tasks.*, users.username FROM tasks LEFT JOIN users ON tasks.assigned_to = users.id WHERE assigned_to = ? ORDER BY tasks.created_at DESC");
+        $stmt = $pdo->prepare("SELECT tasks.*, users.username FROM tasks 
+                               LEFT JOIN users ON tasks.assigned_to = users.id 
+                               WHERE assigned_to = ? 
+                               ORDER BY tasks.created_at DESC");
         $stmt->execute([$user['id']]);
     }
     
     $tasks = $stmt->fetchAll();
     if ($tasks) {
-        echo '<table>';
-        echo '<tr>
+        echo '<table class="table table-bordered table-hover">';
+        echo '<thead class="table-light"><tr>
                 <th>ID</th>
                 <th>Title</th>
-                <th>Description</th>
-                <th>Assigned To</th>
-                <th>Status</th>
-                <th>Created At</th>
-                <th>Action</th>
-              </tr>';
+                <th>Description</th>';
+        if ($user['role'] == 'admin') {
+            echo '<th>Assigned To</th>';
+        }
+        echo '<th>Status</th>
+              <th>Created At</th>
+              <th>Action</th>
+              </tr></thead><tbody>';
         
         foreach ($tasks as $task) {
             echo '<tr>';
             echo '<td>' . htmlspecialchars($task['id']) . '</td>';
             echo '<td>' . htmlspecialchars($task['title']) . '</td>';
             echo '<td>' . htmlspecialchars($task['description']) . '</td>';
-            echo '<td>' . htmlspecialchars($task['username']) . '</td>';
+            if ($user['role'] == 'admin') {
+                echo '<td>' . htmlspecialchars($task['username']) . '</td>';
+            }
             echo '<td>' . htmlspecialchars($task['status']) . '</td>';
             echo '<td>' . htmlspecialchars($task['created_at']) . '</td>';
             
-            // Actions: Admin sees Edit and Delete buttons; Employee sees "Mark Completed"
+            echo '<td>';
             if ($user['role'] == 'admin') {
-                echo '<td>
-                        <button class="edit-task btn" data-id="' . $task['id'] . '">Edit</button>
-                        <button class="delete-task btn" data-id="' . $task['id'] . '">Delete</button>
-                      </td>';
+                // Replace text buttons with icons displayed in a vertical column.
+                echo '<div class="d-flex flex-column align-items-center">';
+                echo '<button class="edit-task btn btn-sm btn-info mb-1" data-id="' . $task['id'] . '" title="Edit">
+                        <i class="bi bi-pencil"></i>
+                      </button>';
+                echo '<button class="delete-task btn btn-sm btn-danger" data-id="' . $task['id'] . '" title="Delete">
+                        <i class="bi bi-trash"></i>
+                      </button>';
+                echo '</div>';
             } else {
-                if ($task['status'] == 'pending') {
-                    echo '<td><button class="update-status btn" data-id="' . $task['id'] . '">Mark Completed</button></td>';
+                if ($task['status'] == 'pending' && empty($task['accomplishment_report'])) {
+                    echo '<button class="report-task btn btn-sm btn-warning" 
+                                data-id="' . $task['id'] . '" 
+                                data-title="' . htmlspecialchars($task['title']) . '" 
+                                data-description="' . htmlspecialchars($task['description']) . '" 
+                                data-status="' . htmlspecialchars($task['status']) . '">Report Accomplishment</button>';
+                } elseif ($task['status'] == 'to be approve') {
+                    echo '<span class="badge bg-info">Report Submitted</span>';
+                } elseif ($task['status'] == 'completed') {
+                    echo '<span class="badge bg-success">Completed</span>';
                 } else {
-                    echo '<td>--</td>';
+                    echo '--';
                 }
             }
+            echo '</td>';
             echo '</tr>';
         }
-        echo '</table>';
+        echo '</tbody></table>';
     } else {
         echo 'No tasks found.';
     }
@@ -77,20 +100,27 @@ if ($action == 'load_tasks') {
         echo "Error adding task.";
     }
     
-} elseif ($action == 'update_status' && $user['role'] == 'employee') {
-    $id = intval($_POST['id']);
-    $stmt = $pdo->prepare("SELECT * FROM tasks WHERE id = ? AND assigned_to = ?");
-    $stmt->execute([$id, $user['id']]);
-    $task = $stmt->fetch();
-    if (!$task) {
-        exit("Task not found or unauthorized.");
-    }
+} elseif ($action == 'submit_report' && $user['role'] == 'employee') {
+    $task_id = intval($_POST['task_id']);
+    $report = trim($_POST['report']);
+    $documentation = "";
     
-    $stmt = $pdo->prepare("UPDATE tasks SET status = 'completed' WHERE id = ?");
-    if ($stmt->execute([$id])) {
-        echo "Task marked as completed.";
+    if (isset($_FILES['documentation']) && $_FILES['documentation']['error'] == UPLOAD_ERR_OK) {
+        $uploadDir = "uploads/";
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+        $filename = basename($_FILES['documentation']['name']);
+        $targetFile = $uploadDir . time() . "_" . $filename;
+        if (move_uploaded_file($_FILES['documentation']['tmp_name'], $targetFile)) {
+            $documentation = $targetFile;
+        }
+    }
+    $stmt = $pdo->prepare("UPDATE tasks SET accomplishment_report = ?, documentation = ?, status = 'to be approve' WHERE id = ? AND assigned_to = ?");
+    if ($stmt->execute([$report, $documentation, $task_id, $user['id']])) {
+        echo "Report submitted successfully.";
     } else {
-        echo "Error updating task.";
+        echo "Error submitting report.";
     }
     
 } elseif ($action == 'delete_task' && $user['role'] == 'admin') {
@@ -109,7 +139,6 @@ if ($action == 'load_tasks') {
     }
     
 } elseif ($action == 'update_task' && $user['role'] == 'admin') {
-    // Handle task editing: update title, description, and assigned_to.
     $id = intval($_POST['task_id']);
     $title = trim($_POST['title']);
     $description = trim($_POST['description']);
@@ -127,8 +156,8 @@ if ($action == 'load_tasks') {
     } else {
         echo "Error updating task.";
     }
+    
 } elseif ($action == 'load_employee_pool' && $user['role'] == 'admin') {
-    // Query to group tasks by employee
     $stmt = $pdo->query("SELECT u.username, 
                              GROUP_CONCAT(t.title SEPARATOR ', ') AS tasks, 
                              GROUP_CONCAT(t.status SEPARATOR ', ') AS statuses 
@@ -155,6 +184,16 @@ if ($action == 'load_tasks') {
     } else {
       echo '<p>No employee data found.</p>';
     }
+    
+} elseif ($action == 'approve_report' && $user['role'] == 'admin') {
+    $task_id = intval($_POST['task_id']);
+    $stmt = $pdo->prepare("UPDATE tasks SET status = 'completed' WHERE id = ?");
+    if ($stmt->execute([$task_id])) {
+        echo "Task marked as completed.";
+    } else {
+        echo "Error approving report.";
+    }
+    
 } else {
     echo "Invalid action or insufficient permissions.";
 }

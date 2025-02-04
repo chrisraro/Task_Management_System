@@ -133,3 +133,20 @@ th, td {
 .close:hover {
     color: #000;
 }
+/* css/style.css */
+
+.modal-dialog.modal-lg {
+    max-width: 1000px;
+  }
+  
+  /* Add extra padding to the modal body */
+  .modal-body {
+    padding: 1.5rem;
+  }
+  
+  /* For small devices, adjust modal margins */
+  @media (max-width: 576px) {
+    .modal-dialog {
+      margin: 1rem;
+    }
+  }
